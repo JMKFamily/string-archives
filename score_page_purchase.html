@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>교향곡 5번 — String Archives</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1a18;
+    --ink-muted: #5a5a56;
+    --ink-faint: #9a9a94;
+    --paper: #faf9f6;
+    --paper-warm: #f2efe8;
+    --staff: #d8d4c8;
+    --accent: #2c4a7c;
+    --accent-light: #e8eef6;
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── 네비 ── */
+  .nav {
+    border-bottom: 1px solid var(--staff);
+    background: var(--paper);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .nav-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--ink-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .back-btn:hover { color: var(--ink); }
+
+  .nav-divider { width: 1px; height: 16px; background: var(--staff); }
+
+  .nav-crumb {
+    font-size: 13px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── 메인 레이아웃 ── */
+  .page-body {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 5rem;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  /* ── 좌측: 악보 프리뷰 ── */
+  .preview-section {}
+
+  .preview-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 1rem;
+  }
+
+  .preview-frame {
+    width: 100%;
+    aspect-ratio: 3/4;
+    background: white;
+    border: 1px solid var(--staff);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .preview-pdf-mock {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    gap: 0;
+  }
+
+  .mock-title-area {
+    text-align: center;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--staff);
+    margin-bottom: 1.5rem;
+  }
+
+  .mock-score-title {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+
+  .mock-score-sub {
+    font-size: 11px;
+    color: var(--ink-muted);
+  }
+
+  .mock-staves {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .mock-system {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+
+  .mock-staff-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 18px;
+    margin-bottom: 2px;
+  }
+
+  .mock-clef {
+    font-size: 9px;
+    color: var(--ink-faint);
+    width: 16px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .mock-notes {
+    flex: 1;
+    position: relative;
+    height: 100%;
+  }
+
+  .staff-lines {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2px 0;
+  }
+
+  .sl { height: 0.5px; background: var(--ink); opacity: 0.3; }
+
+  .mock-note-dots {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+  }
+
+  .nd {
+    width: 5px;
+    height: 5px;
+    background: var(--ink);
+    border-radius: 50%;
+    opacity: 0.5;
+  }
+
+  .nd.q { opacity: 0.8; }
+  .nd.h { opacity: 0.4; width: 7px; border-radius: 2px; }
+
+  .preview-watermark {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(250,249,246,0.97));
+    height: 80px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 12px;
+  }
+
+  .watermark-text {
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── 우측: 구매 패널 ── */
+  .purchase-panel {
+    position: sticky;
+    top: 72px;
+  }
+
+  .composer-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 0.5rem;
+  }
+
+  .score-title-large {
+    font-family: var(--serif);
+    font-size: 1.75rem;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+  }
+
+  .score-movement {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--ink-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .score-spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--staff);
+    margin-bottom: 1.5rem;
+  }
+
+  .spec-cell {
+    background: var(--paper-warm);
+    padding: 0.75rem 1rem;
+  }
+
+  .spec-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+
+  .spec-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--staff);
+  }
+
+  .price-amount {
+    font-family: var(--serif);
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--accent);
+  }
+
+  .price-note {
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  .btn-purchase {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: opacity 0.2s;
+    margin-bottom: 0.75rem;
+  }
+
+  .btn-purchase:hover { opacity: 0.85; }
+
+  .btn-cart {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid var(--staff);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: border-color 0.15s;
+    margin-bottom: 1rem;
+  }
+
+  .btn-cart:hover { border-color: var(--ink-muted); }
+
+  .purchase-note {
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* ── 구분선 ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--staff);
+    margin: 2.5rem 0;
+  }
+
+  /* ── 파트보 섹션 ── */
+  .parts-section {}
+
+  .parts-heading {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 1.25rem;
+  }
+
+  .parts-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .parts-table tr {
+    border-bottom: 1px solid var(--staff);
+  }
+
+  .parts-table tr:first-child {
+    border-top: 1px solid var(--staff);
+  }
+
+  .parts-table td {
+    padding: 1rem 0;
+    font-size: 14px;
+  }
+
+  .part-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--paper-warm);
+    border: 1px solid var(--staff);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    margin-right: 12px;
+    vertical-align: middle;
+  }
+
+  .part-name {
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .part-detail {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-top: 2px;
+  }
+
+  .part-pages {
+    font-size: 12px;
+    color: var(--ink-faint);
+    text-align: right;
+  }
+
+  .included-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  /* ── 푸터 ── */
+  footer {
+    background: var(--paper-warm);
+    border-top: 1px solid var(--staff);
+    padding: 2rem;
+  }
+
+  .footer-info {
+    max-width: 960px;
+    margin: 0 auto;
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 2;
+  }
+
+  @media (max-width: 720px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+    .purchase-panel {
+      position: static;
+      order: -1;
+    }
+    .page-body { padding: 1.5rem 1rem 4rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 네비 ── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="score_list.html" class="back-btn" aria-label="악보 목록으로 돌아가기">← 목록</a>
+    <div class="nav-divider" aria-hidden="true"></div>
+    <span class="nav-crumb">교향곡 · 협주곡 › 교향곡 5번</span>
+  </div>
+</nav>
+
+<!-- ── 페이지 본문 ── -->
+<main class="page-body">
+  <div class="main-grid">
+
+    <!-- 좌측: 악보 프리뷰 -->
+    <div class="preview-section">
+      <p class="preview-label">Score preview — 1p</p>
+      <div class="preview-frame" role="img" aria-label="교향곡 5번 악보 첫 페이지 미리보기">
+        <div class="preview-pdf-mock">
+          <div class="mock-title-area">
+            <p class="mock-score-title">Symphony No.5</p>
+            <p class="mock-score-sub">Allegro con brio · Ludwig van Beethoven · String Quartet arr. Bae Min-ki</p>
+          </div>
+          <div class="mock-staves">
+            <!-- 시스템 1 -->
+            <div class="mock-system">
+              <div class="mock-staff-row">
+                <span class="mock-clef">V1</span>
+                <div class="mock-notes">
+                  <div class="staff-lines"><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+                  <div class="mock-note-dots"><div class="nd q"></div><div class="nd q"></div><div class="nd q"></div><div class="nd h"></div><div class="nd q"></div><div class="nd q"></div><div class="nd q"></div><div class="nd h"></div></div>
+                </div>
+              </div>
+              <div class="mock-staff-row">
+                <span class="mock-clef">V2</span>
+                <div class="mock-notes">
+                  <div class="staff-lines"><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+                  <div class="mock-note-dots"><div class="nd"></div><div class="nd"></div><div class="nd q"></div><div class="nd h"></div><div class="nd"></div><div class="nd q"></div><div class="nd h"></div></div>
+                </div>
+              </div>
+              <div class="mock-staff-row">
+                <span class="mock-clef">Va</span>
+                <div class="mock-notes">
+                  <div class="staff-lines"><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+                  <div class="mock-note-dots"><div class="nd h"></div><div class="nd"></div><div class="nd q"></div><div class="nd h"></div><div class="nd q"></div></div>
+                </div>
+              </div>
+              <div class="mock-staff-row">
+                <span class="mock-clef">Vc</span>
+                <div class="mock-notes">
+                  <div class="staff-lines"><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+                  <div class="mock-note-dots"><div class="nd q"></div><div class="nd q"></div><div class="nd q"></div><div class="nd h"></div><div class="nd q"></div><div class="nd h"></div></div>
+                </div>
+              </div>
+            </div>
+            <!-- 시스템 2 -->
+            <div class="mock-system">
+              <div class="mock-staff-row">
+                <span class="mock-clef">V1</span>
+                <div class="mock-notes">
+                  <div class="staff-lines"><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+                  <div class="mock-note-dots"><div class="nd h"></div><div class="nd q"></div><div class="nd"></div><div class="nd q"></div><div class="nd h"></div><div class="nd q"></div></div>
+                </div>
+              </div>
+              <div class="mock-staff-row">
+                <span class="mock-clef">V2</span>
+                <div class="mock-notes">
+                  <div class="staff-lines"><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+                  <div class="mock-note-dots"><div class="nd"></div><div class="nd q"></div><div class="nd h"></div><div class="nd q"></div><div class="nd h"></div></div>
+                </div>
+              </div>
+              <div class="mock-staff-row">
+                <span class="mock-clef">Va</span>
+                <div class="mock-notes">
+                  <div class="staff-lines"><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+                  <div class="mock-note-dots"><div class="nd q"></div><div class="nd h"></div><div class="nd"></div><div class="nd q"></div><div class="nd h"></div></div>
+                </div>
+              </div>
+              <div class="mock-staff-row">
+                <span class="mock-clef">Vc</span>
+                <div class="mock-notes">
+                  <div class="staff-lines"><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+                  <div class="mock-note-dots"><div class="nd h"></div><div class="nd q"></div><div class="nd q"></div><div class="nd h"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="preview-watermark">
+          <span class="watermark-text">미리보기 — 구매 후 전체 악보 다운로드</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 우측: 구매 패널 -->
+    <aside class="purchase-panel">
+      <p class="composer-label">Ludwig van Beethoven</p>
+      <h1 class="score-title-large">교향곡 5번<br>1악장</h1>
+      <p class="score-movement">Allegro con brio</p>
+
+      <div class="score-spec-grid">
+        <div class="spec-cell">
+          <p class="spec-label">편성</p>
+          <p class="spec-value">현악 4중주</p>
+        </div>
+        <div class="spec-cell">
+          <p class="spec-label">구성</p>
+          <p class="spec-value">스코어 + 파트보</p>
+        </div>
+        <div class="spec-cell">
+          <p class="spec-label">난이도</p>
+          <p class="spec-value">Advanced</p>
+        </div>
+        <div class="spec-cell">
+          <p class="spec-label">저작권</p>
+          <p class="spec-value">퍼블릭 도메인</p>
+        </div>
+      </div>
+
+      <div class="price-row">
+        <span class="price-amount">$12</span>
+        <span class="price-note">PDF 즉시 다운로드</span>
+      </div>
+
+      <button class="btn-purchase" onclick="alert('결제 모듈 연동 예정')">구매하기</button>
+      <button class="btn-cart" onclick="alert('장바구니 기능 연동 예정')">장바구니에 담기</button>
+
+      <p class="purchase-note">구매 후 PDF 파일을 즉시 다운로드할 수 있습니다.<br>스코어 1부 + 파트보 4부 포함</p>
+    </aside>
+
+  </div>
+
+  <!-- ── 구분선 ── -->
+  <hr class="divider">
+
+  <!-- ── 파트보 목록 ── -->
+  <section class="parts-section" aria-labelledby="parts-heading">
+    <h2 class="parts-heading" id="parts-heading">포함된 파트보</h2>
+    <table class="parts-table">
+      <tbody>
+        <tr>
+          <td>
+            <span class="part-icon">Sc</span>
+            <span class="part-name">풀 스코어</span>
+            <p class="part-detail" style="margin-left:44px;">전체 성부 합본 악보</p>
+          </td>
+          <td class="part-pages">
+            <span class="included-badge">포함</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="part-icon">V1</span>
+            <span class="part-name">Violin I</span>
+            <p class="part-detail" style="margin-left:44px;">제1바이올린 파트보</p>
+          </td>
+          <td class="part-pages">
+            <span class="included-badge">포함</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="part-icon">V2</span>
+            <span class="part-name">Violin II</span>
+            <p class="part-detail" style="margin-left:44px;">제2바이올린 파트보</p>
+          </td>
+          <td class="part-pages">
+            <span class="included-badge">포함</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="part-icon">Va</span>
+            <span class="part-name">Viola</span>
+            <p class="part-detail" style="margin-left:44px;">비올라 파트보</p>
+          </td>
+          <td class="part-pages">
+            <span class="included-badge">포함</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="part-icon">Vc</span>
+            <span class="part-name">Cello</span>
+            <p class="part-detail" style="margin-left:44px;">첼로 파트보</p>
+          </td>
+          <td class="part-pages">
+            <span class="included-badge">포함</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>
+
+<!-- ── 푸터 ── -->
+<footer>
+  <div class="footer-info">
+    상호명: 스트링 아카이브즈 · 대표자: 배민기 · 사업자등록번호: 000-00-00000 · 이메일: contact@stringarchives.com
+  </div>
+</footer>
+
+</body>
+</html>
